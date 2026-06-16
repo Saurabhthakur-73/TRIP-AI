@@ -1,40 +1,52 @@
-import { db } from '@/Service/FirebaseConfig'
-import { collection, getDocs, query, where } from 'firebase/firestore'
 import React, { useEffect, useState } from 'react'
-import { useNavigation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import UserCard from './components/UserCard';
+import API_BASE, { authHeader } from '@/Service/api'
 
 function Mytrip() {
-  const navigation = useNavigation();
+  const navigate = useNavigate();
   const [userTrips, setuserTrips] = useState([])
-    
-const GetUserTiprs=async()=>{
-    const user =JSON.parse(localStorage.getItem('user'))
-    
+
+  const GetUserTrips = async () => {
+    const user = JSON.parse(localStorage.getItem('user'))
+
     if (!user) {
-        navigation('/')
-        return ;
+      navigate('/')
+      return;
     }
 
     setuserTrips([]);
-    const q = query(collection(db, 'AITRIPS'), where('userEmail','==',user?.email));
-    const querySnapshot = await getDocs(q);
-    querySnapshot.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
-      console.log(doc.id, " => ", doc.data());
-      setuserTrips(prevVal=>[...prevVal, doc.data()])
-    });
-}
 
-useEffect(()=>{
-    GetUserTiprs();
-},[])
+    try {
+      const res = await fetch(`${API_BASE}/trips/my-trips`, {
+        headers: authHeader(),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // Purane Firebase format jaisa banao (UserCard compatibility ke liye)
+        const formattedTrips = data.trips.map(trip => ({
+          userselection: trip.userSelection,
+          tripdata: trip.tripData,
+          id: trip._id,
+        }));
+        setuserTrips(formattedTrips);
+      }
+    } catch (error) {
+      console.error("Error fetching trips:", error);
+    }
+  }
+
+  useEffect(() => {
+    GetUserTrips();
+  }, [])
+
   return (
     <div className='px-5 sm:px-10 md:px-32 lg:px-56 xl:px-72 mt-10'>
       <h2 className='font-bold text-3xl'>My Trips</h2>
       <div className='grid grid-cols-2 md:grid-cols-2 mt-3 gap-4'>
-        {userTrips.map((trip, index)=>(
-          <UserCard trip={trip} />
+        {userTrips.map((trip, index) => (
+          <UserCard trip={trip} key={index} />
         ))}
       </div>
     </div>
