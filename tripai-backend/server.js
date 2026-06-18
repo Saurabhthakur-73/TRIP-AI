@@ -11,8 +11,15 @@ const aiRoutes = require("./routes/ai.routes");
 
 const app = express();
 
-// ─── Database Connect ───────────────────────────────────────
-connectDB();
+// ─── Database Connect (serverless-safe) ──────────────────────
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Database connection failed!" });
+  }
+});
 
 // ─── Rate Limiting ──────────────────────────────────────────
 const limiter = rateLimit({
