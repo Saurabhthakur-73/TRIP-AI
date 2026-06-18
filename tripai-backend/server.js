@@ -11,19 +11,9 @@ const aiRoutes = require("./routes/ai.routes");
 
 const app = express();
 
-// ─── Database Connect (serverless-safe) ──────────────────────
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Database connection failed!" });
-  }
-});
-
 // ─── Rate Limiting ──────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: "Too many requests, try again later." },
 });
@@ -35,6 +25,18 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan("dev"));
+
+// ─── Database Connect (serverless-safe) ──────────────────────
+app.use(async (req, res, next) => {
+  if (req.method === "OPTIONS") return next();
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Database connection failed!" });
+  }
+});
+
 app.use("/api", limiter);
 
 // ─── Routes ─────────────────────────────────────────────────
